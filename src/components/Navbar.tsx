@@ -1,12 +1,16 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react"
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/16/solid"
 import { NavLink } from "react-router-dom"
 
 const navigation = [
-	{ name: 'Product', to: '/', current: true },
+	{ name: 'Product', to: '/product', current: true },
 	{ name: 'Recipes', to: '/recipes', current: false },
 	{ name: 'Carts', to: '/carts', current: false },
 	{ name: 'Post', to: '/posts', current: false },
+	{ name: 'Todos', to: '/todos', current: false },
+	{ name: 'Comments', to: '/comments', current: false },
 ]
 
 function classNames(...classes: string[]) {
