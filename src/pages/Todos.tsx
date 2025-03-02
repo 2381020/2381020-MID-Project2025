@@ -19,33 +19,105 @@ const Todos = () => {
 
   const addTodo = async () => {
     if (newTodo.trim() !== "") {
-      const todo = await createData<Todo>("todos/add", { todo: newTodo, completed: false, userId: 1 });
-      if (todo && todo.id) {
-        setTodos([{ id: todo.id, todo: todo.todo, completed: todo.completed, userId: todo.userId }, ...todos]);
-      }
+      const tempId = Date.now(); // ID sementara
+      const newTodoItem: Todo = {
+        id: tempId,
+        todo: newTodo,
+        completed: false,
+        userId: 1,
+      };
+  
+      setTodos([newTodoItem, ...todos]);
+      console.log("Todo sementara ditambahkan:", newTodoItem);
       setNewTodo("");
+  
+      try {
+        const todoFromAPI = await createData<Todo>("todos/add", {
+          todo: newTodo,
+          completed: false,
+          userId: 1,
+        });
+  
+        console.log("Todo berhasil dibuat di API:", todoFromAPI);
+  
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo.id === tempId ? { ...todo, id: todoFromAPI.id } : todo
+          )
+        );
+  
+        console.log("Todos setelah update ID dari API:", todos);
+      } catch (error) {
+        console.error("Gagal menambahkan todo ke API:", error);
+      }
     }
   };
+  
+  
+  
 
   const updateTodo = async (id: number, todoText: string) => {
     const updatedText = prompt("Edit todo:", todoText);
     if (updatedText !== null && updatedText.trim() !== "") {
-      const updatedTodo = await updateData<Todo>("todos", id, { todo: updatedText });
-      setTodos(todos.map((todo) => (todo.id === id ? { ...todo, todo: updatedTodo.todo } : todo)));
+      setTodos((prevTodos) =>
+        prevTodos.map((todo) => (todo.id === id ? { ...todo, todo: updatedText } : todo))
+      );
     }
   };
 
   const toggleTodo = async (id: number, completed: boolean) => {
-    const updatedTodo = await updateData<Todo>("todos", id, { completed: !completed });
-    setTodos(
-      todos.map((todo) => (todo.id === id ? { ...todo, completed: updatedTodo.completed } : todo))
-    );
+    console.log("Coba toggle todo, ID:", id, "Status sebelumnya:", completed);
+  
+    const todo = todos.find((t) => t.id === id);
+    if (!todo) {
+      console.error("Todo tidak ditemukan di state!");
+      return;
+    }
+  
+    if (id >= 10 ** 12) {
+      console.log("Todo masih pakai ID sementara, update di frontend saja.");
+      setTodos((prevTodos) =>
+        prevTodos.map((todo) =>
+          todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        )
+      );
+      return;
+    }
+  
+    try {
+      console.log("Mengirim request ke API untuk toggle:", id);
+      const updatedTodo = await updateData<Todo>("todos", id, { completed: !completed });
+  
+      console.log("Berhasil update todo di API:", updatedTodo);
+      setTodos((prevTodos) =>
+        prevTodos.map((todo) =>
+          todo.id === id ? { ...todo, completed: updatedTodo.completed } : todo
+        )
+      );
+    } catch (error) {
+      console.error("Gagal mengubah status todo:", error);
+    }
   };
-
+  
+  
+  
   const removeTodo = async (id: number) => {
-    await deleteData("todos", id);
-    setTodos(todos.filter((todo) => todo.id !== id));
+    console.log("Menghapus todo dengan ID:", id);
+  
+    // Hapus langsung dari state untuk ID sementara
+    setTodos((prevTodos) => prevTodos.filter((todo) => todo.id !== id));
+  
+    if (id >= 10 ** 12) return; // Jika ID sementara, tidak perlu API call
+  
+    try {
+      await deleteData("todos", id);
+    } catch (error) {
+      console.error("Gagal menghapus dari API:", error);
+    }
   };
+  
+  
+  
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-gray-100 rounded-lg shadow-md mt-6">

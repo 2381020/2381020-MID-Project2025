@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchData, createData, deleteData, updateData } from "../services/apiService";
+import { fetchData, createData, updateData, deleteData } from "../services/apiService";
 
 // Definisi Interface Recipe
 interface Recipe {
@@ -18,28 +18,54 @@ const Recipes = () => {
   }, []);
 
   const addRecipe = async () => {
-    if (newName.trim() !== "" && newIngredients.trim() !== "") {
-      const recipe = await createData<Recipe>("recipes/add", { name: newName, ingredients: newIngredients });
-      if (recipe && recipe.id) {
-        setRecipes([{ ...recipe }, ...recipes]);
-      }
-      setNewName("");
-      setNewIngredients("");
+    if (!newName.trim() || !newIngredients.trim()) return;
+
+    const tempId = Date.now(); // ID sementara
+    const newRecipeItem: Recipe = { id: tempId, name: newName, ingredients: newIngredients };
+    
+    setRecipes((prev) => [newRecipeItem, ...prev]);
+    setNewName("");
+    setNewIngredients("");
+
+    try {
+      const recipeFromAPI = await createData<Recipe>("recipes/add", { name: newName, ingredients: newIngredients });
+      setRecipes((prev) =>
+        prev.map((recipe) => (recipe.id === tempId ? { ...recipe, id: recipeFromAPI.id } : recipe))
+      );
+    } catch (error) {
+      console.error("Gagal menambahkan recipe ke API:", error);
     }
   };
 
   const updateRecipe = async (id: number, name: string, ingredients: string) => {
     const updatedName = prompt("Edit name:", name);
     const updatedIngredients = prompt("Edit ingredients:", ingredients);
-    if (updatedName !== null && updatedIngredients !== null && updatedName.trim() !== "" && updatedIngredients.trim() !== "") {
-      const updatedRecipe = await updateData<Recipe>("recipes", id, { name: updatedName, ingredients: updatedIngredients });
-      setRecipes(recipes.map((recipe) => (recipe.id === id ? { ...recipe, name: updatedRecipe.name, ingredients: updatedRecipe.ingredients } : recipe)));
+    if (!updatedName || !updatedIngredients) return;
+
+    setRecipes((prev) =>
+      prev.map((recipe) => (recipe.id === id ? { ...recipe, name: updatedName, ingredients: updatedIngredients } : recipe))
+    );
+
+    if (id >= 10 ** 12) return; // Jika ID sementara, update hanya di frontend
+
+    try {
+      await updateData<Recipe>("recipes", id, { name: updatedName, ingredients: updatedIngredients });
+    } catch (error) {
+      console.error("Gagal mengupdate recipe:", error);
     }
   };
 
   const removeRecipe = async (id: number) => {
-    await deleteData("recipes", id);
-    setRecipes(recipes.filter((recipe) => recipe.id !== id));
+    console.log("Menghapus recipe dengan ID:", id);
+
+    setRecipes((prev) => prev.filter((recipe) => recipe.id !== id));
+    if (id >= 10 ** 12) return;
+
+    try {
+      await deleteData(`recipes/${id}`, id);
+    } catch (error) {
+      console.error("Gagal menghapus recipe:", error);
+    }
   };
 
   return (
